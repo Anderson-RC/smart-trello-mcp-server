@@ -1,8 +1,6 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import cors from 'cors';
 import dotenv from 'dotenv';
-import express from 'express';
 
 // Import modular tools
 import { registerBoardsTools } from './tools/boards.js';
@@ -17,13 +15,8 @@ import { TrelloCredentials } from './types/common.js';
 // Load environment variables
 dotenv.config();
 
-const app = express();
 const trelloApiKey = process.env.TRELLO_API_KEY;
 const trelloApiToken = process.env.TRELLO_API_TOKEN;
-
-// Enable CORS and JSON parsing
-app.use(cors());
-app.use(express.json());
 
 // Create an MCP server
 const server = new McpServer({
@@ -101,14 +94,6 @@ registerActionsTools(server, credentials);
 // Connect to stdio transport
 const transport = new StdioServerTransport();
 server.connect(transport);
-
-// Start the Express server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-	console.log(`🚀 Advanced Trello MCP Server running on port ${PORT}`);
-	console.log(`🔧 APIs available: Boards, Lists, Cards, Labels, Actions`);
-	console.log(`📋 Modular architecture with 44+ tools`);
-});
 
 // Export server for testing
 export default server; 
