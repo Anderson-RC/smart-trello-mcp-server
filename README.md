@@ -176,22 +176,36 @@ This project follows a strategic 6-phase expansion plan to achieve **100% Trello
 ### Project Structure
 ```
 advanced-trello-mcp-server/
-├── src/
-│   └── index.ts          # Main MCP server implementation
-├── build/
-│   └── index.js          # Compiled JavaScript (executable)
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-└── README.md            # This file
+├── src/                 # TypeScript source code
+│   ├── index.ts         # Main MCP server implementation
+│   ├── tools/           # Modular tool implementations
+│   ├── types/           # TypeScript type definitions
+│   └── utils/           # Shared utilities
+├── build/               # Compiled JavaScript output
+│   └── index.js         # Executable entry point
+├── scripts/             # Build and utility scripts
+│   └── build.js         # Cross-platform build script
+├── package.json         # Dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+└── README.md           # This file
 ```
 
 ### Building
 ```bash
+# Full build (TypeScript compilation + shebang)
 npm run build
+
+# TypeScript compilation only
+npm run compile
 ```
 
+**Cross-Platform Build**: El script de build es completamente compatible con Windows, macOS y Linux, manejando automáticamente:
+- Compilación de TypeScript
+- Inyección de shebang (`#!/usr/bin/env node`)
+- Permisos de ejecución (en sistemas Unix)
+
 ### Development Workflow
-1. Make changes in `src/index.ts`
+1. Make changes in `src/` directory
 2. Run `npm run build` to compile
 3. Test with Cursor AI
 4. Commit changes with conventional commits

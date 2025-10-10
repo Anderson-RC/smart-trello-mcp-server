@@ -7,10 +7,12 @@
 		"trello-mcp-server": "./build/index.js"
 	},
 	"scripts": {
-		"build": "tsc && echo \"#!/usr/bin/env node\" | cat - build/index.js > temp && mv temp build/index.js && node -e \"require('fs').chmodSync('build/index.js', '755')\""
+		"build": "node scripts/build.js",
+		"compile": "tsc"
 	},
 	"files": [
-		"build"
+		"build",
+		"scripts"
 	],
 	"keywords": [],
 	"author": "",
