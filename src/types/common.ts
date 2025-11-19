@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 // Common Trello API response structure
 export interface TrelloApiResponse<T = any> {
+	[x: string]: unknown;
 	content: Array<{
 		type: 'text';
 		text: string;

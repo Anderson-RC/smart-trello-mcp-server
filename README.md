@@ -62,6 +62,8 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
    ```bash
    export TRELLO_API_KEY="your_api_key"
    export TRELLO_API_TOKEN="your_api_token"
+   export TRELLO_DEFAULT_BOARD="MCP Test Board"              # Optional default target
+   export TRELLO_ALLOWED_BOARDS="MCP Test Board,Marketing"   # Comma-separated allowlist
    ```
 
 5. **Configure Cursor MCP**
@@ -73,7 +75,9 @@ This is an **enhanced version** of the Trello MCP Server that provides comprehen
          "command": "/path/to/advanced-trello-mcp-server/build/index.js",
          "env": {
            "TRELLO_API_KEY": "your_api_key",
-           "TRELLO_API_TOKEN": "your_api_token"
+           "TRELLO_API_TOKEN": "your_api_token",
+           "TRELLO_DEFAULT_BOARD": "MCP Test Board",
+           "TRELLO_ALLOWED_BOARDS": "MCP Test Board,Marketing"
          }
        }
      }
@@ -255,6 +259,11 @@ This server implements tools based on the official [Trello REST API documentatio
 **3. Permission errors**
 - Verify your Trello token has access to the boards/cards you're trying to modify
 - Some operations require `write` scope, not just `read`
+
+### Board allowlists (Security)
+- The server enforces a board allowlist via `TRELLO_ALLOWED_BOARDS`. Provide a comma-separated list of board names that the MCP is permitted to access.
+- `resolveBoardId` checks this list before making Trello API calls, so any disallowed board requests fail fast with an "Access Denied" message.
+- Combine `TRELLO_ALLOWED_BOARDS` with `TRELLO_DEFAULT_BOARD` to lock the MCP to a single board (e.g., both set to `"MCP Test Board"`).
 
 ## 📄 License
 

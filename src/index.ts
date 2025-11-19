@@ -1,16 +1,18 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
 
 // Import modular tools
-import { registerBoardsTools } from './tools/boards.js';
-import { registerListsTools } from './tools/lists.js';
-import { registerCardsTools } from './tools/cards.js';
-import { registerLabelsTools } from './tools/labels.js';
-import { registerActionsTools } from './tools/actions.js';
+// (Deprecated tools removed)
 
-// Import types
+// Import new smart tools
+import { registerSnapshotTools } from './tools/snapshot.js';
+import { registerSmartActionTools } from './tools/smart-actions.js';
+import { registerSearchTools } from './tools/search.js';
+
+// Import types and utilities
 import { TrelloCredentials } from './types/common.js';
+import { TrelloCache } from './utils/cache.js';
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +23,7 @@ const trelloApiToken = process.env.TRELLO_API_TOKEN;
 // Create an MCP server
 const server = new McpServer({
 	name: 'Advanced Trello MCP Server',
-	version: '2.0.0',
+	version: '3.0.0',
 });
 
 // Prepare credentials
@@ -30,66 +32,13 @@ const credentials: TrelloCredentials = {
 	apiToken: trelloApiToken || '',
 };
 
-// Define resources (same as before)
-server.resource('boards', 'trello://boards', async (uri) => {
-	const response = await fetch(
-		`https://api.trello.com/1/members/me/boards?key=${trelloApiKey}&token=${trelloApiToken}`
-	);
-	const data = await response.json();
-	return {
-		contents: [
-			{
-				uri: uri.href,
-				text: JSON.stringify(data),
-			},
-		],
-	};
-});
+// Initialize cache with 5-minute TTL
+const cache = new TrelloCache(5);
 
-server.resource(
-	'lists',
-	new ResourceTemplate('trello://boards/{boardId}/lists', { list: undefined }),
-	async (uri, { boardId }) => {
-		const response = await fetch(
-			`https://api.trello.com/1/boards/${boardId}/lists?key=${trelloApiKey}&token=${trelloApiToken}`
-		);
-		const data = await response.json();
-		return {
-			contents: [
-				{
-					uri: uri.href,
-					text: JSON.stringify(data),
-				},
-			],
-		};
-	}
-);
-
-server.resource(
-	'cards',
-	new ResourceTemplate('trello://lists/{listId}/cards', { list: undefined }),
-	async (uri, { listId }) => {
-		const response = await fetch(
-			`https://api.trello.com/1/lists/${listId}/cards?key=${trelloApiKey}&token=${trelloApiToken}`
-		);
-		const data = await response.json();
-		return {
-			contents: [
-				{
-					uri: uri.href,
-					text: JSON.stringify(data),
-				},
-			],
-		};
-	}
-);
-
-// Register all tools by API group
-registerBoardsTools(server, credentials);
-registerListsTools(server, credentials);
-registerCardsTools(server, credentials);
-registerLabelsTools(server, credentials);
-registerActionsTools(server, credentials);
+// Register new smart tools
+registerSnapshotTools(server, credentials, cache);
+registerSmartActionTools(server, credentials, cache);
+registerSearchTools(server, credentials);
 
 // Connect to stdio transport
 const transport = new StdioServerTransport();
