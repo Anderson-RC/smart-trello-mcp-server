@@ -1,289 +1,99 @@
-# 🚀 Advanced Trello MCP Server
 
-> **Enhanced Model Context Protocol Server for Trello integration with Cursor AI**  
-> Complete API coverage with 40+ tools and enterprise-grade features
+# Trello MCP Server
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Trello API](https://img.shields.io/badge/Trello%20API-Complete-green.svg)](https://developer.atlassian.com/cloud/trello/rest/)
-[![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+A Model Context Protocol (MCP) server for Trello designed specifically for LLM agents.
 
-<a href="https://glama.ai/mcp/servers/@adriangrahldev/advanced-trello-mcp-server">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@adriangrahldev/advanced-trello-mcp-server/badge" alt="Advanced Trello Server MCP server" />
-</a>
+This project is a hard fork of the `advanced-trello-mcp-server`. While the original repository provides a comprehensive wrapper around the Trello REST API, this implementation re-architects the interaction model to prioritize token efficiency, semantic context, and operational safety.
 
-## 📋 Overview
+This server is tailored more towards personal use - to augment your LLM while working to manage a trello board to maintain flow within your workspace.
 
-This is an **enhanced version** of the Trello MCP Server that provides comprehensive integration between Trello and Cursor AI. Originally supporting 15 basic tools, this version has been expanded to **44+ tools** covering multiple Trello API categories with enterprise-grade functionality.
+## Overview
 
-## ✨ Features
+Standard REST-based MCP tools force AI agents to perform "manual" API chaining (e.g., listing boards, then listing lists, then listing cards) to understand the state of a project. This results in high latency, excessive token consumption, and frequent errors.
 
-### 🎯 **Complete API Coverage**
-- **Actions API**: 16 tools (Complete audit trail, reactions, comments)
-- **Lists API**: 9 tools (Complete list management)
-- **Cards API**: 8 tools (Enhanced card operations)
-- **Labels API**: 8 tools (Complete label management) ✅
-- **Boards API**: 1 tool (Basic board access)
+This server acts as an intelligent middleware layer. It aggregates data server-side, performs fuzzy matching on names to resolve IDs, and aggressively strips UI-specific metadata. The goal is to allow an agent to understand and manipulate a board's state in a single request-response cycle. It's also designed with the intention of minimising token and context consumption through the programmatic filtration of extraneous data before it reaches the agent.
 
-### 🔧 **Enterprise Features**
-- **TypeScript Implementation** with strict typing
-- **Zod Validation** for all inputs and outputs
-- **Batch Operations** for bulk actions
-- **Error Handling** with detailed error messages
-- **Rate Limiting Ready** architecture
-- **Extensible Design** for future API additions
+## Feature Set
 
-## 🚀 Quick Start
+### 1. Context Aggregation (The Snapshot)
+**Tool:** `get_board_snapshot`
+Retrieves the entire state of a board (lists, cards, and members) in a single tool call.
+*   **Data Stitching:** Automatically resolves Trello's flat JSON structure into a nested hierarchy (Board > Lists > Cards).
+*   **Noise Reduction:** Strips approximately 70% of the raw API response, removing background colors, emoji coordinates, legacy metadata, and positional floats to conserve the LLM's context window.
+*   **Member Resolution:** Resolves opaque Member IDs (e.g., `id123`) to human-readable names within the card context.
+
+### 2. Semantic Actions
+**Tools:** `add_card_smart`, `move_card_smart`, `update_card_smart`
+Agents interact with resources by name, not ID.
+*   **Fuzzy Matching:** The server uses Levenshtein distance to resolve "Review List" to the correct List ID, handling typos or minor variations automatically.
+*   **Self-Correction:** If a lookup fails, the server returns a list of valid nearest matches, allowing the agent to self-correct without user intervention.
+
+### 3. Operational Safety
+**Scope:** purely operational.
+*   **No Administration:** Capabilities to create boards, delete lists, or modify workspace structures are intentionally removed to prevent "structure drift" and accidental data loss.
+*   **Board Scoping:** Restrict the agent's access to specific boards via environment variables, preventing unauthorized access to personal or sensitive boards even if the API token has access.
+
+### 4. Undo Capabilities
+**Tools:** `get_archived_cards`, `restore_card_smart`
+Allows the agent to audit closed cards and restore them by name, providing a safety net for accidental archives.
+
+## Installation
 
 ### Prerequisites
-- Node.js 18+ 
-- Trello API Key and Token
-- Cursor AI with MCP support
+*   Node.js (v16 or higher)
+*   Trello API Key and Token (obtainable via Trello Power-Up Admin)
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/adriangrahldev/advanced-trello-mcp-server.git
-   cd advanced-trello-mcp-server
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Build the project**
-   ```bash
-   npm run build
-   ```
-
-4. **Configure environment variables**
-   ```bash
-   export TRELLO_API_KEY="your_api_key"
-   export TRELLO_API_TOKEN="your_api_token"
-   export TRELLO_DEFAULT_BOARD="MCP Test Board"              # Optional default target
-   export TRELLO_ALLOWED_BOARDS="MCP Test Board,Marketing"   # Comma-separated allowlist
-   ```
-
-5. **Configure Cursor MCP**
-   Add to your `~/.cursor/mcp.json`:
-   ```json
-   {
-     "servers": {
-       "trello": {
-         "command": "/path/to/advanced-trello-mcp-server/build/index.js",
-         "env": {
-           "TRELLO_API_KEY": "your_api_key",
-           "TRELLO_API_TOKEN": "your_api_token",
-           "TRELLO_DEFAULT_BOARD": "MCP Test Board",
-           "TRELLO_ALLOWED_BOARDS": "MCP Test Board,Marketing"
-         }
-       }
-     }
-   }
-   ```
-
-## 🛠️ Available Tools
-
-### 📋 **Lists Management (9 tools)**
-- `get-lists` - Get all lists from a board
-- `create-list` - Create new list
-- `update-list` - Update list properties
-- `archive-list` - Archive/unarchive lists
-- `move-list-to-board` - Move lists between boards
-- `get-list-actions` - Get list action history
-- `get-list-board` - Get board information from list
-- `get-list-cards` - Get cards from list with filtering
-- `archive-all-cards-in-list` - Archive all cards in list
-- `move-all-cards-in-list` - Move all cards between lists
-
-### 🎯 **Cards Management (8 tools)**
-- `create-card` - Create single card
-- `create-cards` - Create multiple cards (batch)
-- `move-card` - Move card between lists
-- `move-cards` - Move multiple cards (batch)
-- `archive-card` - Archive single card
-- `archive-cards` - Archive multiple cards (batch)
-- `get-tickets-by-list` - Get cards from specific list
-- `add-comment` - Add comment to card
-
-### 🏷️ **Labels Management (8 tools)** ✅ **COMPLETE**
-- `create-label` - Create single label
-- `create-labels` - Create multiple labels (batch)
-- `add-label` - Add label to card
-- `add-labels` - Add labels to multiple cards (batch)
-- `get-label` - Get detailed label information
-- `update-label` - Update label name and color
-- `delete-label` - Delete label by ID
-- `update-label-field` - Update specific label field
-
-### 📊 **Actions & Audit (16 tools)**
-- `get-action` - Get detailed action information
-- `update-action` - Update action (comments)
-- `delete-action` - Delete action (comments only)
-- `get-action-field` - Get specific action field
-- `get-action-board` - Get board from action
-- `get-action-card` - Get card from action
-- `get-action-list` - Get list from action
-- `get-action-member` - Get member from action
-- `get-action-member-creator` - Get action creator
-- `get-action-organization` - Get organization from action
-- `update-comment-action` - Update comment text
-- `get-action-reactions` - Get action reactions
-- `create-action-reaction` - Add reaction to action
-- `get-action-reaction` - Get specific reaction
-- `delete-action-reaction` - Remove reaction
-- `get-action-reactions-summary` - Get reactions summary
-
-### 🏢 **Boards Management (1 tool)**
-- `get-boards` - Get all accessible boards
-
-## 📈 Roadmap
-
-This project follows a strategic 6-phase expansion plan to achieve **100% Trello API coverage**:
-
-### **Phase 1: Foundation** (In Progress - 1/3 Complete)
-- ✅ Complete Lists API (9 tools)
-- ✅ Complete Actions API (16 tools)
-- ✅ Complete Labels API (8 tools) **DONE!**
-- 🔄 Enhanced Cards API (15 more tools needed)
-- 🔄 Enhanced Boards API (8 more tools needed)
-
-### **Phase 2: Productivity** (Planned)
-- Checklists API (12 tools)
-- Search API (3 tools)
-- Emoji API (2 tools)
-
-### **Phase 3: Collaboration** (Planned)
-- Members API (20 tools)
-- Organizations API (15 tools)
-
-### **Phase 4: Automation** (Planned)
-- Batch API (3 tools)
-- CustomFields API (12 tools)
-- Webhooks API (8 tools)
-
-### **Phase 5: Advanced Management** (Planned)
-- Notifications API (10 tools)
-- Plugins API (8 tools)
-- Tokens API (6 tools)
-
-### **Phase 6: Enterprise** (Planned)
-- Enterprises API (12 tools)
-- Applications API (4 tools)
-
-**Target: 182 total tools** (currently at 44)
-
-## 🔧 Development
-
-### Project Structure
-```
-advanced-trello-mcp-server/
-├── src/                 # TypeScript source code
-│   ├── index.ts         # Main MCP server implementation
-│   ├── tools/           # Modular tool implementations
-│   ├── types/           # TypeScript type definitions
-│   └── utils/           # Shared utilities
-├── build/               # Compiled JavaScript output
-│   └── index.js         # Executable entry point
-├── scripts/             # Build and utility scripts
-│   └── build.js         # Cross-platform build script
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── README.md           # This file
-```
-
-### Building
+### Build Steps
 ```bash
-# Full build (TypeScript compilation + shebang)
+git clone https://github.com/your-username/trello-mcp-server.git
+cd trello-mcp-server
+npm install
 npm run build
-
-# TypeScript compilation only
-npm run compile
 ```
 
-**Cross-Platform Build**: El script de build es completamente compatible con Windows, macOS y Linux, manejando automáticamente:
-- Compilación de TypeScript
-- Inyección de shebang (`#!/usr/bin/env node`)
-- Permisos de ejecución (en sistemas Unix)
+## Configuration
 
-### Development Workflow
-1. Make changes in `src/` directory
-2. Run `npm run build` to compile
-3. Test with Cursor AI
-4. Commit changes with conventional commits
+Add the server to your MCP client configuration file (e.g., `mcp_settings.json` for VS Code extensions or `claude_desktop_config.json`).
 
-## 🤝 Contributing
+```json
+{
+  "mcpServers": {
+    "trello": {
+      "command": "node",
+      "args": ["/absolute/path/to/trello-mcp-server/build/index.js"],
+      "env": {
+        "TRELLO_API_KEY": "your_api_key",
+        "TRELLO_TOKEN": "your_api_token",
+        "TRELLO_DEFAULT_BOARD": "Project Alpha",
+        "TRELLO_ALLOWED_BOARDS": "Project Alpha, Marketing, Roadmap"
+      }
+    }
+  }
+}
+```
 
-Contributions are welcome! Please:
+### Environment Variables
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Variable | Description | Required |
+| :--- | :--- | :--- |
+| `TRELLO_API_KEY` | Your Trello Power-Up API Key. | Yes |
+| `TRELLO_TOKEN` | Your Trello User Token. | Yes |
+| `TRELLO_DEFAULT_BOARD` | The board name to use if the agent does not specify one. | No |
+| `TRELLO_ALLOWED_BOARDS`| Comma-separated list of board names the agent is permitted to access. If set, all other boards will return "Access Denied." | No |
 
-### Commit Convention
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `refactor:` - Code refactoring
-- `test:` - Adding tests
-- `chore:` - Maintenance tasks
+## Usage
 
-## 📚 API Documentation
+Once installed, the agent will utilize the tools autonomously. You can provide high-level instructions:
 
-This server implements tools based on the official [Trello REST API documentation](https://developer.atlassian.com/cloud/trello/rest/). Each tool includes:
+*   **Status Check:** "Check the Roadmap board and summary what is currently in the 'In Progress' column."
+*   **Task Management:** "Add a card 'Fix Login Bug' to the Bugs list."
+*   **Workflow:** "Move the 'Update Documentation' card to Done."
+*   **Recovery:** "I accidentally archived a card about the logo. Please find it and put it back."
 
-- **Zod schema validation** for type safety
-- **Comprehensive error handling**
-- **Optional parameters** support
-- **Batch operations** where applicable
-- **Detailed JSDoc comments**
+## Credits and Licensing
 
-## 🐛 Troubleshooting
+This project is a fork of [advanced-trello-mcp-server](https://github.com/adriangrahldev/advanced-trello-mcp-server) by Adrian Grahl.
 
-### Common Issues
+While the original repository provides an extensive implementation of the Trello REST API as MCP tools, this fork diverges significantly in architectural philosophy. It reduces the API surface area to focus strictly on agent-optimized, high-density operations.
 
-**1. "Trello API credentials are not configured"**
-- Ensure `TRELLO_API_KEY` and `TRELLO_API_TOKEN` are set
-- Verify the token has appropriate scopes (`read` minimum, `write` for modifications)
-
-**2. "Tool not found" errors**
-- Restart Cursor AI to refresh MCP server
-- Verify the build was successful (`npm run build`)
-- Check MCP configuration in `~/.cursor/mcp.json`
-
-**3. Permission errors**
-- Verify your Trello token has access to the boards/cards you're trying to modify
-- Some operations require `write` scope, not just `read`
-
-### Board allowlists (Security)
-- The server enforces a board allowlist via `TRELLO_ALLOWED_BOARDS`. Provide a comma-separated list of board names that the MCP is permitted to access.
-- `resolveBoardId` checks this list before making Trello API calls, so any disallowed board requests fail fast with an "Access Denied" message.
-- Combine `TRELLO_ALLOWED_BOARDS` with `TRELLO_DEFAULT_BOARD` to lock the MCP to a single board (e.g., both set to `"MCP Test Board"`).
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Original Trello MCP Server by [yairhaimo](https://github.com/yairhaimo/trello-mcp-server)
-- [Trello API Documentation](https://developer.atlassian.com/cloud/trello/rest/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Cursor AI](https://cursor.sh/)
-
-## 📊 Stats
-
-- **Total Tools**: 44 (vs 15 original)
-- **API Coverage**: ~40% (target: 100%)
-- **Lines of Code**: 2,500+ TypeScript
-- **Type Safety**: 100% with Zod validation
-- **Documentation**: Comprehensive inline docs
-
----
-
-**Built with ❤️ for the Cursor AI community** 
+Licensed under the MIT License.
